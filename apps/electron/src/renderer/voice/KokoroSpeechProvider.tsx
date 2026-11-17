@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { SpeechProvider, type SpeechController } from '@craft-agent/ui'
-import { sharedPlayer } from './sentence-player'
+import { PlaybackError, sharedPlayer } from './sentence-player'
 import { voiceSetting } from './voice-services'
 
 /**
@@ -35,7 +35,11 @@ export function KokoroSpeechProvider({ children }: { children: React.ReactNode }
       .catch(err => {
         if (currentRef.current !== id) return
         console.error('[speech] playback failed', err)
-        toast.error(`Kokoro não respondeu em ${voiceSetting('craft:kokoro-url')}`)
+        toast.error(
+          err instanceof PlaybackError
+            ? `Não consegui tocar o áudio: ${err.message}`
+            : `Kokoro não respondeu em ${voiceSetting('craft:kokoro-url')}`,
+        )
       })
       .finally(() => {
         if (currentRef.current !== id) return // another response took over

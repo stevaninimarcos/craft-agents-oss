@@ -1,5 +1,10 @@
 import { splitSentences, synthesize, toSpeakable } from './voice-services'
 
+/** The audio arrived but the app could not play it (as opposed to Kokoro being down). */
+export class PlaybackError extends Error {
+  override name = 'PlaybackError'
+}
+
 export interface PlayOptions {
   /** Cap on spoken sentences; the rest is replaced by a short "the rest is in the chat". */
   maxSentences?: number
@@ -47,8 +52,8 @@ export class SentencePlayer {
             this.audio = audio
             audio.onended = () => resolve()
             audio.onpause = () => resolve() // stop() pauses
-            audio.onerror = () => reject(new Error('audio playback failed'))
-            void audio.play().catch(reject)
+            audio.onerror = () => reject(new PlaybackError(audio.error?.message || 'audio playback failed'))
+            void audio.play().catch(err => reject(new PlaybackError(String(err?.message ?? err))))
           })
         } finally {
           URL.revokeObjectURL(url)
