@@ -1,7 +1,8 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Copy, FileText, GitBranch, Maximize2 } from 'lucide-react'
+import { Check, Copy, FileText, GitBranch, Loader2, Maximize2, Square, Volume2 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { useSpeech } from '../../../context/SpeechContext'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../tooltip'
 import {
   DropdownMenu,
@@ -64,6 +65,28 @@ export interface ResponseFooterProps {
   variant: 'answer' | 'plan'
   /** Right-aligned content (Accept plan) */
   trailing?: React.ReactNode
+  /** Response to read aloud; the listen button only shows when the host provides a SpeechProvider */
+  speech?: { id: string; text: string }
+}
+
+/** Listen / stop button, backed by the host's SpeechProvider. */
+function SpeakButton({ id, text }: { id: string; text: string }) {
+  const { t } = useTranslation()
+  const speech = useSpeech()
+  if (!speech) return null
+  const loading = speech.loadingId === id
+  const playing = speech.speakingId === id
+  const active = loading || playing
+  const label = active ? t('chat.stopSpeaking', 'Parar áudio') : t('chat.listenResponse', 'Ouvir resposta')
+  return (
+    <TurnIconButton
+      aria-label={label}
+      tooltip
+      icon={loading ? <Loader2 className="animate-spin" /> : playing ? <Square className="size-3 fill-current" /> : <Volume2 />}
+      onClick={() => (active ? speech.stop() : speech.speak(id, text))}
+      className={cn('turn-action-btn select-none', active && 'text-accent')}
+    />
+  )
 }
 
 /**
@@ -78,6 +101,7 @@ export function ResponseFooter({
   onBranch,
   variant,
   trailing,
+  speech,
 }: ResponseFooterProps) {
   const { t } = useTranslation()
   const copyLabel = copied ? t('common.copied') : t('common.copy')
@@ -99,6 +123,7 @@ export function ResponseFooter({
         onClick={onCopy}
         className="turn-action-btn select-none"
       />
+      {speech && <SpeakButton id={speech.id} text={speech.text} />}
       {onPopOut && (
         <TurnIconButton
           aria-label={t('turnCard.viewAsMarkdown')}

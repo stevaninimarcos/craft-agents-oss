@@ -26,6 +26,9 @@ export {
   ShikiThemeProvider,
   useShikiTheme,
   type ShikiThemeProviderProps,
+  SpeechProvider,
+  useSpeech,
+  type SpeechController,
 } from './context'
 
 // Chat components

@@ -1424,6 +1424,7 @@ export function ResponseCard({
       variant={isPlan ? 'plan' : 'answer'}
       copied={copied}
       onCopy={handleCopy}
+      speech={text ? { id: messageId ?? text.slice(0, 64), text } : undefined}
       onPopOut={onPopOut}
       onViewFullscreen={() => setIsFullscreen(true)}
       onBranch={onBranch}

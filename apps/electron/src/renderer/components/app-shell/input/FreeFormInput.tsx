@@ -81,6 +81,8 @@ import { ComposerModeChip } from './ComposerModeChip'
 import { ContextUsageChip } from './ContextUsageChip'
 import { FollowUpChips } from './FollowUpChips'
 import { SendButton } from './SendButton'
+import { VoiceInputButton } from './VoiceInputButton'
+import { VoiceModeButton } from './VoiceModeButton'
 
 
 /** Platform-specific modifier key for keyboard shortcuts */
@@ -657,6 +659,23 @@ export function FreeFormInput({
     window.addEventListener('craft:insert-text', handleInsertText as EventListener)
     return () => window.removeEventListener('craft:insert-text', handleInsertText as EventListener)
   }, [sessionId, isFocusedPanel, syncToParent, richInputRef])
+
+  // Voice → text: append the transcript to whatever is already typed, never auto-send.
+  const handleVoiceTranscript = React.useCallback((spoken: string) => {
+    const current = inputRef.current ?? ''
+    const next = current.trim() ? `${current.replace(/\s+$/, '')} ${spoken}` : spoken
+    setInput(next)
+    syncToParent(next)
+    setTimeout(() => {
+      richInputRef.current?.focus()
+      richInputRef.current?.setSelectionRange(next.length, next.length)
+    }, 0)
+  }, [syncToParent, richInputRef])
+
+  // Voice mode: each spoken turn is a normal chat message, sent through the regular submit path.
+  const handleVoiceSubmit = React.useCallback((spoken: string) => {
+    onSubmit(spoken, [])
+  }, [onSubmit])
 
   const clearInputDraft = React.useCallback(() => {
     setInput('')
@@ -1915,6 +1934,17 @@ export function FreeFormInput({
             showMeter={!compactMode}
             onCompact={() => onSubmit('/compact', [])}
           />
+
+          {/* Hands-free voice conversation (Whisper → agent → Kokoro) */}
+          <VoiceModeButton
+            sessionId={sessionId}
+            isProcessing={isProcessing}
+            disabled={disabled}
+            onSubmit={handleVoiceSubmit}
+          />
+
+          {/* Voice → text via local Whisper */}
+          <VoiceInputButton disabled={disabled} onTranscript={handleVoiceTranscript} />
 
           {/* Send/Stop Button - Always show stop when processing */}
           <SendButton

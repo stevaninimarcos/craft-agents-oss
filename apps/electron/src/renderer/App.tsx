@@ -83,6 +83,7 @@ import { getFileManagerName } from '@/lib/platform'
 import { rendererLog } from '@/lib/logger'
 import { ActionRegistryProvider } from '@/actions'
 import { toast } from 'sonner'
+import { KokoroSpeechProvider } from './voice/KokoroSpeechProvider'
 
 type AppState = 'loading' | 'onboarding' | 'reauth' | 'workspace-picker' | 'ready'
 
@@ -2091,6 +2092,7 @@ export default function App() {
   // Ready state - main app with splash overlay during data loading
   return (
     <PlatformProvider actions={platformActions}>
+    <KokoroSpeechProvider>
     <ShikiThemeProvider shikiTheme={shikiTheme}>
       <ActionRegistryProvider>
       <FocusProvider>
@@ -2170,6 +2172,7 @@ export default function App() {
       </FocusProvider>
       </ActionRegistryProvider>
     </ShikiThemeProvider>
+    </KokoroSpeechProvider>
     </PlatformProvider>
   )
 }
