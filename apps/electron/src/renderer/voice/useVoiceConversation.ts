@@ -15,7 +15,8 @@
 import * as React from 'react'
 import { useAtomValue } from 'jotai'
 import { sessionAtomFamily } from '@/atoms/sessions'
-import { encodeWav, splitSentences, synthesize, toSpeakable, transcribe } from './voice-services'
+import { encodeWav, transcribe } from './voice-services'
+import { sharedPlayer } from './sentence-player'
 
 export type VoicePhase = 'off' | 'listening' | 'transcribing' | 'thinking' | 'speaking'
 
@@ -55,7 +56,6 @@ export function useVoiceConversation({ sessionId, isProcessing, onSubmit }: Opti
 
   const streamRef = React.useRef<MediaStream | null>(null)
   const ctxRef = React.useRef<AudioContext | null>(null)
-  const audioRef = React.useRef<HTMLAudioElement | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
   const submittedAtRef = React.useRef(0)
   const sawProcessingRef = React.useRef(false)
@@ -136,37 +136,9 @@ export function useVoiceConversation({ sessionId, isProcessing, onSubmit }: Opti
   }, [handleUtterance])
 
   const speak = React.useCallback(async (markdown: string) => {
-    const sentences = splitSentences(toSpeakable(markdown))
-    const toSay = sentences.slice(0, MAX_SPOKEN_SENTENCES)
-    if (sentences.length > MAX_SPOKEN_SENTENCES) toSay.push('O resto está no chat.')
-    if (toSay.length === 0) {
-      setPhase('listening')
-      return
-    }
     setPhase('speaking')
-    abortRef.current = new AbortController()
-    const { signal } = abortRef.current
     try {
-      let next: Promise<Blob> = synthesize(toSay[0]!, signal)
-      for (let i = 0; i < toSay.length; i++) {
-        const blob = await next
-        if (i + 1 < toSay.length) next = synthesize(toSay[i + 1]!, signal) // prefetch while playing
-        if (phaseRef.current !== 'speaking') return
-        const url = URL.createObjectURL(blob)
-        try {
-          await new Promise<void>((resolve, reject) => {
-            const audio = new Audio(url)
-            audioRef.current = audio
-            audio.onended = () => resolve()
-            audio.onpause = () => resolve() // stop() pauses
-            audio.onerror = () => reject(new Error('audio playback failed'))
-            void audio.play().catch(reject)
-          })
-        } finally {
-          URL.revokeObjectURL(url)
-          audioRef.current = null
-        }
-      }
+      await sharedPlayer.play(markdown, { maxSentences: MAX_SPOKEN_SENTENCES })
     } catch (err) {
       if (phaseRef.current === 'off') return
       console.error('[voice-mode] speech failed', err)
@@ -199,7 +171,7 @@ export function useVoiceConversation({ sessionId, isProcessing, onSubmit }: Opti
   const stop = React.useCallback(() => {
     setPhase('off')
     abortRef.current?.abort()
-    audioRef.current?.pause()
+    sharedPlayer.stop()
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
     void ctxRef.current?.close()

@@ -14,3 +14,9 @@ export {
   useShikiTheme,
   type ShikiThemeProviderProps,
 } from './ShikiThemeContext'
+
+export {
+  SpeechProvider,
+  useSpeech,
+  type SpeechController,
+} from './SpeechContext'
